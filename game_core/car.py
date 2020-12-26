@@ -96,7 +96,7 @@ class Car:
         self.name_tyres = f"Type-{self.tyre_type}"
         self.name_body_kit = f"{self.body_kit_type}"
         # local parameters
-        self.gear = 1
+        self.gear = 0
         self.rpm = 1000
         self.min_rpm = 2000
         self.speed_mps = 0
@@ -128,7 +128,7 @@ class Car:
             return self.boost_nm
 
     def air_drag(self):
-        return (0.8 * self.drag_coefficient * 2.5 * (self.speed_mps*60**2))
+        return (0.5 * self.drag_coefficient * 2 * (self.speed_mps*36**2))
 
     def accelerate(self, seconds):
         if self.shifting != False:
@@ -143,7 +143,7 @@ class Car:
         self.rpm = min(self.max_rpm,max(self.min_rpm,min(self.max_rpm,self.speed_mps * self.gear_ratios['final_drive'] * self.gear_ratios[self.gear]) * 60))
         self.distance_traveled += self.speed_mps * seconds
 
-    def dyno(self, plot=True, r=250):
+    def dyno(self, plot=True, r=250, verbose=False):
         speed, rpm, distance_traveled = {}, {}, {}
         hit100, zero100_time = False, 999
         for x in range(1, r):
@@ -152,8 +152,9 @@ class Car:
             if helpers.mps_to_kph(self.speed_mps) >= 100 and hit100 == False:
                 zero100_time = x
                 hit100 = True
-            # print(
-            #     f"{x}, {round(helpers.mps_to_kph(self.speed_mps))} KPH, {round(self.rpm)} RPM, {round(helpers.watt_to_bhp(self.power()))} HP, Gear: {self.gear}")
+            if verbose:
+                print(
+                f"{x}, {round(helpers.mps_to_kph(self.speed_mps))} KPH, {round(self.rpm)} RPM, {round(helpers.watt_to_bhp(self.power()))} HP, Gear: {self.gear}")
             speed[x] = helpers.mps_to_kph(self.speed_mps)
             rpm[x] = self.rpm
             distance_traveled[x] = self.distance_traveled
@@ -181,7 +182,7 @@ class Car:
     def calculate_cost(self):
         total_cost = 0
         total_cost += self.cylinders * 1000
-        total_cost += self.displacement_cc * self.cylinders * 1.2
+        total_cost += self.displacement_cc * self.cylinders * 1.5
         total_cost += \
         {'None': 0, 'S': 1000, 'M': 1600, 'L': 2250, 'H': 3000, 'Supercharger-V1': 2000, 'Supercharger-V2': 3500,
          'Supercharger-V3': 6000}[self.turbo_type]
