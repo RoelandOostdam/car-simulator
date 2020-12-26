@@ -128,7 +128,7 @@ class Car:
             return self.boost_nm
 
     def air_drag(self):
-        return (0.6 * self.drag_coefficient * 2 * (self.speed_mps*60**2))
+        return (0.8 * self.drag_coefficient * 2.5 * (self.speed_mps*60**2))
 
     def accelerate(self, seconds):
         if self.shifting != False:

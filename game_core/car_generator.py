@@ -54,4 +54,4 @@ def generate_car(max_cost, optimized_distance, intensity):
         pickle.dump(cars[best_car_index], output, pickle.HIGHEST_PROTOCOL)
 
 if __name__ == '__main__':
-    generate_car(13000,200,100)
+    generate_car(20000,300,100)
