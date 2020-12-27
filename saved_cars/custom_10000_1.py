@@ -11,7 +11,7 @@ More cylinders = more rpm & more torque
 More displacement = more torque
 '''
 cylinders = 4
-displacement_cc = 410
+displacement_cc = 600
 # ---------------------------------- #
 '''
 Aspiration (Boost)

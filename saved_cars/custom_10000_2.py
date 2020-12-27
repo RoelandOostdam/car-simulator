@@ -11,7 +11,7 @@ More cylinders = more rpm & more torque
 More displacement = more torque
 '''
 cylinders = 6
-displacement_cc = 200
+displacement_cc = 300
 # ---------------------------------- #
 '''
 Aspiration (Boost)
@@ -38,14 +38,15 @@ Transmission (Gearbox)
 7-Speed transmission            : $1100
 8-Speed transmission            : $1300
 '''
-shift_at = 7500
+shift_at = 7000
 gear_ratios = {
-    'final_drive': 5.616,
+    'final_drive': 3.616,
     1: 4.1,
     2: 2.55,
     3: 1.55,
     4: 0.87,
-    5: 0.75,
+    5: 0.6,
+    6: 0.4,
 }
 # ---------------------------------- #
 '''
