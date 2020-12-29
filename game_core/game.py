@@ -1,3 +1,6 @@
+import math
+import time
+
 import pygame
 from game_core.car import Car
 import game_core.helpers as helpers
@@ -10,8 +13,20 @@ class DragRacing:
         self.display_height = 600
         self.black = (0, 0, 0)
         self.white = (255, 255, 255)
+        self.blue = (0, 0, 255)
+        self.red = (255, 0, 0)
+        self.green = (0, 255, 0)
         self.clock = pygame.time.Clock()
         self.gameDisplay = None
+        self.time_elapsed = 0
+        self.time_finished = [0,0]
+        self.sectors_passed = [0,0]
+        self.sector_times = {
+            '100':[0,0],
+            '200':[0,0],
+            '300':[0,0],
+            '400':[0,0],
+        }
 
         self.crashed = False
 
@@ -57,10 +72,29 @@ class DragRacing:
         self.game_engine()
 
     def game_engine(self):
+        time_start = time.time()
         while not self.crashed:
+            if helpers.mps_to_kph(self.car.speed_mps) > 75:
+                self.car.nos_activated = True
+            if helpers.mps_to_kph(self.car2.speed_mps) > 75:
+                self.car2.nos_activated = True
+            # for event in pygame.event.get():
+            #     if event.type == pygame.QUIT:
+            #         self.crashed = True
+            #
+            #     if helpers.mps_to_kph(self.car.speed_mps) > 75:
+            #         self.car.nos_activated = True
+            #     if helpers.mps_to_kph(self.car2.speed_mps) > 75:
+            #         self.car2.nos_activated = True
+                # if (event.type == pygame.KEYDOWN):
+                #     if (event.key == pygame.K_LEFT) and helpers.mps_to_kph(self.car.speed_mps) > 75:
+                #         self.car.nos_activated = True
+                #     if (event.key == pygame.K_RIGHT) and helpers.mps_to_kph(self.car2.speed_mps) > 75:
+                #         self.car2.nos_activated = True
             # Car simulation
             self.car.accelerate(1/60/10)
             self.car2.accelerate(1/60/10)
+            self.time_elapsed += 1/60
 
             # Background display
             self.bg_speed = self.car.speed_mps
@@ -71,24 +105,72 @@ class DragRacing:
             self.update_cars()
 
             for i, car in enumerate([self.car, self.car2]):
-                if car.distance_traveled*10 >= self.target_distance and self.won == False:
-                    self.won = car.name
+
+                if car.distance_traveled*10 >= self.target_distance:
+                    if self.won == False:
+                        self.won = car.name
+                    if i == 0 and car.finished == False:
+                        self.time_finished[0] = (time.time()-time_start)
+                    elif i == 1 and car.finished == False:
+                        self.time_finished[1] = (time.time()-time_start)
+
+                    car.finished = True
                 if i == 0:
                     text_x = 20
                 else:
                     text_x = 650
+
+                for sector in self.sector_times.keys():
+                    if car.distance_traveled*10 >= int(sector) and int(self.sectors_passed[i]) < int(sector):
+                        self.sectors_passed[i] = sector
+                        self.sector_times[sector][i] = time.time() - time_start
                 # HUD display
                 font = pygame.font.SysFont("lucidaconsole", 14)
                 # Car info
                 if self.won != False:
-                    text = font.render(f"{self.won} won", True, self.white)
-                    self.gameDisplay.blit(text, (20, 20))
+                    if car.name == self.won:
+                        text = font.render(f"Won", True, self.green)
+                    else:
+                        text = font.render(f"Lost", True, self.red)
+                    self.gameDisplay.blit(text, (text_x, 20))
+
                 else:
                     text = font.render(f"Distance: {round(max(self.car.distance_traveled*10, self.car2.distance_traveled*10))}/{self.target_distance}", True, self.white)
-                    self.gameDisplay.blit(text, (20, 20))
+                    self.gameDisplay.blit(text, (text_x, 20))
 
-                text = font.render(f"Distance traveled: {round(car.distance_traveled*10)}m", True, self.white)
-                self.gameDisplay.blit(text, (text_x, 150))
+                if self.won != False:
+                    text = font.render(f"{round(self.time_finished[i],3)}s", True, self.white)
+                else:
+                    text = font.render(f"{round(self.time_elapsed,1)}s", True, self.white)
+                self.gameDisplay.blit(text, (text_x, 40))
+
+                if i==0:
+                    i2 = 1
+                else:
+                    i2 = 0
+                sector_ys = [60,80,100,120]
+                for z, sector in enumerate(self.sector_times.keys()):
+                    if self.sector_times[sector][i] != 0:
+                        diff = round(self.sector_times[sector][i2]-self.sector_times[sector][i], 3)
+                        c = self.green
+                        if diff < 0:
+                            c = self.red
+                        text = font.render(f"{str(sector)}m: {diff}s", True, c)
+                        self.gameDisplay.blit(text, (text_x, sector_ys[z]))
+
+                if i == 0:
+                    i2 = self.car2
+                else:
+                    i2 = self.car
+                diff = round(car.distance_traveled - i2.distance_traveled, 2)
+                c = self.green
+                if diff < 0:
+                    c = self.red
+                text = font.render(f"Diff: {diff}m", True, c)
+                self.gameDisplay.blit(text, (text_x, 140))
+
+                # text = font.render(f"Distance traveled: {round(car.distance_traveled*10)}m", True, self.white)
+                # self.gameDisplay.blit(text, (text_x, 150))
                 text = font.render(car.name, True, self.white)
                 self.gameDisplay.blit(text, (text_x, 220))
                 text = font.render(f"Total cost: ${car.total_cost}", True, self.white)
@@ -108,28 +190,56 @@ class DragRacing:
                 text = font.render(f"{car.name_tyres} tyres", True, self.white)
                 self.gameDisplay.blit(text, (text_x, 400))
                 # Metrics
-                text = font.render(f"{round(helpers.mps_to_kph(car.speed_mps), 1)} kph", True, self.white)
-                self.gameDisplay.blit(text, (text_x, 500))
+                text = font.render(f"Speed {round(helpers.mps_to_kph(car.speed_mps), 1)} kph", True, self.white)
+                self.gameDisplay.blit(text, (text_x, 480))
                 # RPM
-                txt = f"{round(car.rpm)} rpm"
+                txt = f"RPM   {round(car.rpm)}"
                 if car.shifting != False:
                     txt += " [shifting]"
                 text = font.render(txt, True, self.white)
-                self.gameDisplay.blit(text, (text_x, 520))
+                self.gameDisplay.blit(text, (text_x, 500))
                 # RPM Bar
                 percentage = round((car.rpm / car.max_rpm) * 20)
-                pbar = "["+("-"*percentage)+("_"*(20-percentage))+"]"
+                pbar = "["+("-"*percentage)+("_"*(20-percentage))+"]"+f" {car.gear}"
                 text = font.render(pbar, True, self.white)
-                self.gameDisplay.blit(text, (text_x, 540))
+                self.gameDisplay.blit(text, (text_x, 520))
+                # Power bar
+                car_pwr = car.power()
+                percentage = round((helpers.watt_to_bhp(car_pwr) / car.dyno_max_power) * 8)
+                pbar = "Power [" + (">" * percentage) + (
+                            "_" * (8 - percentage)) + "]" + f" {round(helpers.watt_to_bhp(car_pwr), 1)} bhp"
+                text = font.render(pbar, True, self.white)
+                self.gameDisplay.blit(text, (text_x, 560))
                 # Boost bar
                 if car.aspiration:
-                    percentage = round((car.boost() / car.boost_nm) * 6)
-                    pbar = "Boost [" + ("-" * percentage) + ("_" * (6 - percentage+1)) + "]"
+                    percentage = math.floor((car.boost() / car.boost_nm) * 8)
+                    pbar = "Boost [" + (">" * percentage) + ("_" * (8 - percentage)) + "]" + f" {round(helpers.watt_to_bhp(car.boost()))} bhp"
                 else:
                     pbar = "No boost installed"
                 text = font.render(pbar, True, self.white)
-                self.gameDisplay.blit(text, (text_x, 560))
-                text = font.render(f"gear {car.gear}", True, self.white)
+                self.gameDisplay.blit(text, (text_x, 540))
+
+                if car.nos_type != False:
+                    if car.nos_activated == False:
+                        nos_percentage = 8
+                    else:
+                        nos_percentage = math.floor(car.nos() / helpers.bhp_to_watt(car.nos_type) * 8)
+                    pbar = "[" + ("/" * nos_percentage) + (
+                                "_" * (8 - nos_percentage)) + "]" + f" {round(helpers.watt_to_bhp(car.nos()))} bhp"
+
+                else:
+                    pbar = "Not installed"
+                if pbar == "Not installed":
+                    c = self.white
+                else:
+                    if car.nos_activated:
+                        c = self.red
+                    else:
+                        if helpers.mps_to_kph(car.speed_mps) < 75:
+                            c = self.white
+                        else:
+                            c = self.green
+                text = font.render(f"NOS   {pbar}", True, c)
                 self.gameDisplay.blit(text, (text_x, 580))
 
             # Pygame update

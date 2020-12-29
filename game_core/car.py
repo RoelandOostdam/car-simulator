@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from game_core.engine_curve import calculate_max
 
 class Car:
-    def __init__(self, name, cylinders, displacement_cc, turbo_type, clutch_type, shift_at, weight_type, gear_ratios, body_kit_type, tyre_type):
+    def __init__(self, name, cylinders, displacement_cc, turbo_type, clutch_type, shift_at, weight_type, gear_ratios, body_kit_type, tyre_type, nos_type):
         # Specs
         self.name = name
 
@@ -16,10 +16,12 @@ class Car:
         # Aspiration
         self.turbo_type = turbo_type
         turbo_types = {
-            "S": [3000,6000,40],
-            "M": [4000,7000,65],
-            "L": [5000,8000,100],
-            "H": [6000,9000,150],
+            "SS": [2500,6000,30],
+            "S": [3000,6000,50],
+            "M": [4000,7000,90],
+            "L": [4500,7500,120],
+            "XL": [5000,8000,150],
+            "H": [5500,8500,200],
             "Supercharger-V1": self.max_torque*0.1,
             "Supercharger-V2": self.max_torque*0.2,
             "Supercharger-V3": self.max_torque*0.4,
@@ -44,7 +46,9 @@ class Car:
         self.clutch_type = clutch_type
         clutch_types = {
             "Stock": 0.3,
-            "Street": 0.175,
+            "Street": 0.25,
+            "Sport": 0.20,
+            "Performance": 0.15,
             "Race": 0.1,
         }
         self.clutch_time = clutch_types[self.clutch_type]
@@ -52,9 +56,12 @@ class Car:
         # Chassis
         self.weight_type = weight_type
         weight_options = {
-            "Heavy": 1600,
-            "Medium": 1400,
+            "Super-heavy": 1600,
+            "Heavy": 1500,
+            "Medium-light": 1400,
+            "Medium": 1300,
             "Light": 1200,
+            "Super-light": 1100,
             "Ultra-light": 1000,
         }
         self.weight_kg = weight_options[self.weight_type]
@@ -62,10 +69,10 @@ class Car:
         self.body_kit_type = body_kit_type
         body_kits = {
             "Stock":0.45,
-            "Street":0.40,
-            "Sport":0.35,
-            "Performance":0.30,
-            "Race":0.25,
+            "Street":0.43,
+            "Sport":0.41,
+            "Performance":0.39,
+            "Race":0.37,
         }
         self.drag_coefficient = body_kits[self.body_kit_type]
 
@@ -79,6 +86,17 @@ class Car:
             "Y":0.93,
         }
         self.roll_resistance = tyre_types[self.tyre_type]
+        # ----------------------------------------------
+        # NOS
+        self.nos_type = nos_type
+        nos_types = {
+            'None':0,
+            '75HP':75,
+            '100HP':100,
+            '125HP':125,
+            '150HP':150,
+        }
+        self.nos_type = nos_types[nos_type]
         # ----------------------------------------------
         # Internal variables
         # Naming
@@ -98,7 +116,7 @@ class Car:
         # local parameters
         self.gear = 0
         self.rpm = 1000
-        self.min_rpm = 2000
+        self.min_rpm = 2500
         self.speed_mps = 0
         self.distance_traveled = 0
         self.shifting = False
@@ -106,11 +124,14 @@ class Car:
         self.dyno_max_power = x['power']
         self.dyno_max_torque = x['torque']
         self.total_cost = self.calculate_cost()
+        self.finished = False
+        self.nos_time = 0
+        self.nos_activated = False
 
     def torque(self):
         rpm_percentage = (max(self.min_rpm,self.rpm) / self.max_rpm) * 100
         torque = ((100 + (-(rpm_percentage-50)**2)/25) / 100) * self.max_torque
-        return torque
+        return max(0,torque)
 
     def power(self):
         if self.shifting != False:
@@ -123,25 +144,36 @@ class Car:
         elif self.aspiration == 'Turbo':
             if self.rpm < self.turbo_rpm_min:
                 return 0
-            return ((self.rpm - self.turbo_rpm_min) / (self.turbo_rpm_max - self.turbo_rpm_min)) * self.boost_nm
+            return min(1,((self.rpm - self.turbo_rpm_min) / (self.turbo_rpm_max - self.turbo_rpm_min))) * self.boost_nm
         elif self.aspiration == 'Supercharged':
             return self.boost_nm
 
+    def nos(self):
+        if self.nos_type == False or self.nos_activated == False:
+            return 0
+        if self.nos_time*10 >= 4:
+            return 0
+        return helpers.bhp_to_watt(self.nos_type) * (4-(min(4,self.nos_time*10)))/4
+
     def air_drag(self):
-        return (0.5 * self.drag_coefficient * 2 * 2.5 * (self.speed_mps*36**2))
+        return (0.5 * self.drag_coefficient * 2 * 2.5 * ((self.speed_mps*100**2)/5))
 
     def accelerate(self, seconds):
         if self.shifting != False:
             self.shifting -= seconds * 10 / self.clutch_time
         if self.shifting <= 0:
             self.shifting = False
-        if self.rpm > self.shift_at and self.gear < self.gear_count:
+        if self.rpm >= self.shift_at and self.gear < self.gear_count:
             self.gear += 1
             self.shifting = 1
-        speed_delta = ((self.power()) - self.air_drag()) / self.weight_kg * self.roll_resistance
+        speed_delta = ((self.power() + self.nos()) - self.air_drag()) / self.weight_kg * self.roll_resistance
         self.speed_mps += speed_delta * (seconds)
         self.rpm = min(self.max_rpm,max(self.min_rpm,min(self.max_rpm,self.speed_mps * self.gear_ratios['final_drive'] * self.gear_ratios[self.gear]) * 60))
         self.distance_traveled += self.speed_mps * seconds
+        if self.nos_activated:
+            self.nos_time += seconds
+        # if helpers.mps_to_kph(self.speed_mps) >= 100:
+        #     self.nos_activated = True
 
     def dyno(self, plot=True, r=250, verbose=False):
         speed, rpm, distance_traveled = {}, {}, {}
@@ -175,21 +207,23 @@ class Car:
             ax2.set_ylabel('RPM', color=color)  # we already handled the x-label with ax1
             ax2.plot(rpm.keys(), rpm.values(), color=color, linewidth=2)
             ax2.tick_params(axis='y', labelcolor=color)
+            ax2.grid(axis='y')
             plt.show()
 
         return distance_traveled
 
     def calculate_cost(self):
         total_cost = 0
-        total_cost += self.cylinders * 1000
-        total_cost += self.displacement_cc * self.cylinders * 1.5
+        total_cost += self.cylinders * 500
+        total_cost += self.displacement_cc * self.cylinders * 2
         total_cost += \
-        {'None': 0, 'S': 1000, 'M': 1600, 'L': 2250, 'H': 3000, 'Supercharger-V1': 2000, 'Supercharger-V2': 3500,
+        {'None': 0, 'SS':750, 'S': 1000, 'M': 1600, 'L': 2000, 'XL':2250,'H': 2500, 'Supercharger-V1': 2000, 'Supercharger-V2': 3500,
          'Supercharger-V3': 6000}[self.turbo_type]
         total_cost += 500 + ((len(self.gear_ratios) - 1 - 4) * 200)
-        total_cost += {'Stock': 100, 'Street': 225, 'Race': 350}[self.clutch_type]
-        total_cost += {'Heavy': 1000, 'Medium': 1500, 'Light': 2000, 'Ultra-light': 2500}[self.weight_type]
-        total_cost += {'Stock': 500, 'Street': 1000, 'Sport': 1500, 'Performance': 2000, 'Race': 2500}[
+        total_cost += {'Stock': 100, 'Street': 250, 'Sport': 400, 'Performance': 550, 'Race': 700}[self.clutch_type]
+        total_cost += {'Super-heavy': 1000, 'Heavy':1400, 'Medium': 1800, 'Medium-light':2200, 'Light': 2600,'Super-light':3000, 'Ultra-light': 3400}[self.weight_type]
+        total_cost += {'Stock': 500, 'Street': 900, 'Sport': 1400, 'Performance': 1800, 'Race': 2200}[
             self.body_kit_type]
         total_cost += {'H': 250, 'V': 350, 'Z': 450, 'W': 550, 'Y': 650}[self.tyre_type]
+        total_cost += {0:0, 75: 750, 100: 1000, 125: 1250, 150: 1500}[self.nos_type]
         return total_cost
