@@ -64,7 +64,7 @@ Better clutch means faster shifting
 "Performance": 0.15s            : $550
 "Race": 0.1s                    : $700
 '''
-clutch_type = "Race"
+clutch_type = "Street"
 # ---------------------------------- #
 '''
 Weight type

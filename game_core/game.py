@@ -190,7 +190,10 @@ class DragRacing:
                 text = font.render(f"{car.name_tyres} tyres", True, self.white)
                 self.gameDisplay.blit(text, (text_x, 400))
                 # Metrics
-                text = font.render(f"Speed {round(helpers.mps_to_kph(car.speed_mps), 1)} kph", True, self.white)
+                text = f"Speed {round(helpers.mps_to_kph(car.speed_mps), 1)} kph"
+                if car.tcs:
+                    text += " [ TCS ]"
+                text = font.render(text, True, self.white)
                 self.gameDisplay.blit(text, (text_x, 480))
                 # RPM
                 txt = f"RPM   {round(car.rpm)}"
@@ -248,11 +251,11 @@ class DragRacing:
 
     def update_cars(self):
         if self.car.distance_traveled >= self.car2.distance_traveled:
-            diff = (self.car.distance_traveled - self.car2.distance_traveled) * 100 * 4.5
+            diff = (self.car.distance_traveled - self.car2.distance_traveled) * 10 * 4.5
             self.gameDisplay.blit(self.carImg, (self.car_x_coordinate, self.car_y_coordinate))
             self.gameDisplay.blit(self.car2Img, (self.car2_x_coordinate, self.car2_y_coordinate+diff))
         else:
-            diff = (self.car2.distance_traveled - self.car.distance_traveled) * 100 * 4.5
+            diff = (self.car2.distance_traveled - self.car.distance_traveled) * 10 * 4.5
             self.gameDisplay.blit(self.carImg, (self.car_x_coordinate, self.car_y_coordinate+diff))
             self.gameDisplay.blit(self.car2Img, (self.car2_x_coordinate, self.car2_y_coordinate))
     def background_road(self):

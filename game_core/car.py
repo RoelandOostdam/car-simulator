@@ -127,6 +127,7 @@ class Car:
         self.finished = False
         self.nos_time = 0
         self.nos_activated = False
+        self.tcs = False
 
     def torque(self):
         rpm_percentage = (max(self.min_rpm,self.rpm) / self.max_rpm) * 100
@@ -156,7 +157,10 @@ class Car:
         return helpers.bhp_to_watt(self.nos_type) * (4-(min(4,self.nos_time*10)))/4
 
     def air_drag(self):
-        return (0.5 * self.drag_coefficient * 2 * 2.5 * ((self.speed_mps*100**2)/5))
+        return (0.9 * self.drag_coefficient * 2 * 2.5 * ((self.speed_mps**2)))
+
+    def traction(self):
+        return 0.7 * ((self.weight_kg * 9.81)/4) * 2
 
     def accelerate(self, seconds):
         if self.shifting != False:
@@ -166,8 +170,16 @@ class Car:
         if self.rpm >= self.shift_at and self.gear < self.gear_count:
             self.gear += 1
             self.shifting = 1
-        speed_delta = ((self.power() + self.nos()) - self.air_drag()) / self.weight_kg * self.roll_resistance
-        self.speed_mps += speed_delta * (seconds)
+        power = self.power() + self.nos()
+        self.tcs = False
+        if self.power() / self.weight_kg / 60 > self.traction() / self.weight_kg:
+            self.tcs = True
+            power = self.traction() * 60
+
+        # print(self.power() / self.weight_kg / 60, self.traction() / self.weight_kg, self.tcs)
+
+        speed_delta = power / self.weight_kg * seconds * self.roll_resistance - (self.air_drag() * seconds / 60)
+        self.speed_mps += speed_delta
         self.rpm = min(self.max_rpm,max(self.min_rpm,min(self.max_rpm,self.speed_mps * self.gear_ratios['final_drive'] * self.gear_ratios[self.gear]) * 60))
         self.distance_traveled += self.speed_mps * seconds
         if self.nos_activated:
