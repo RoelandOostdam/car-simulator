@@ -10,7 +10,7 @@ class Car:
         # Engine
         self.cylinders = cylinders
         self.displacement_cc = displacement_cc
-        self.max_torque = (self.displacement_cc/10) * self.cylinders
+        self.max_torque = (self.displacement_cc/9) * self.cylinders
         self.max_rpm = 5000 + (self.cylinders * 500)
 
         # Aspiration
@@ -166,7 +166,7 @@ class Car:
         return helpers.bhp_to_watt(self.nos_type) * (4-(min(4,self.nos_time*10)))/4
 
     def air_drag(self):
-        return (0.9 * self.drag_coefficient * 2 * 2.5 * ((self.speed_mps**2)))
+        return (0.9 * self.drag_coefficient * 2 * 2.0 * ((self.speed_mps**2)))
 
     def traction(self):
         return 0.7 * ((self.weight_kg * 9.81)/4) * self.drive
