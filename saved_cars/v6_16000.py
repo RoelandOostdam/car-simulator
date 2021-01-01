@@ -88,13 +88,19 @@ Body kit (better body kit provides better drag coefficient)
 body_kit_type = "Street"
 # ---------------------------------- #
 '''
+'2-wheel'                       : $0
+'4-wheel'                       : $350
+'''
+drive_type = '2-wheel'
+# ---------------------------------- #
+'''
 Tyre type (better tyres reduce roll resistance)
 
-"H":0.85                        : $ 250
-"V":0.87                        : $ 350
-"Z":0.89                        : $ 450
-"W":0.91                        : $ 550
-"Y":0.93                        : $ 650
+"H":r0.85, t0.72                     : $ 250
+"V":r0.87  t0.79                     : $ 350
+"Z":r0.89  t0.86                     : $ 450
+"W":r0.91, t0.93                     : $ 550
+"Y":r0.93, t1                        : $ 650
 '''
 tyre_type = "Z"
 # ---------------------------------- #
@@ -115,7 +121,7 @@ def create():
     return Car(name=name, cylinders=cylinders, displacement_cc=displacement_cc, turbo_type=turbo_type,
           clutch_type=clutch_type,
           shift_at=shift_at, weight_type=weight_type, gear_ratios=gear_ratios, body_kit_type=body_kit_type,
-          tyre_type=tyre_type, nos_type=nos_type)
+          tyre_type=tyre_type, nos_type=nos_type, drive=drive_type)
 
 if __name__ == "__main__":
     car = create()

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from game_core.engine_curve import calculate_max
 
 class Car:
-    def __init__(self, name, cylinders, displacement_cc, turbo_type, clutch_type, shift_at, weight_type, gear_ratios, body_kit_type, tyre_type, nos_type):
+    def __init__(self, name, cylinders, displacement_cc, turbo_type, clutch_type, shift_at, weight_type, gear_ratios, body_kit_type, tyre_type, nos_type, drive):
         # Specs
         self.name = name
 
@@ -76,16 +76,25 @@ class Car:
         }
         self.drag_coefficient = body_kits[self.body_kit_type]
 
+        #
+        self.drive = drive
+        self.drive_types = {
+            '2-wheel':2,
+            '4-wheel':4,
+        }
+        self.drive = self.drive_types[self.drive]
+
         # Tyres
         self.tyre_type = tyre_type
         tyre_types = {
-            "H":0.85,
-            "V":0.87,
-            "Z":0.89,
-            "W":0.91,
-            "Y":0.93,
+            "H":[0.85, 0.72],
+            "V":[0.87, 0.79],
+            "Z":[0.89, 0.86],
+            "W":[0.91, 0.93],
+            "Y":[0.93, 1],
         }
-        self.roll_resistance = tyre_types[self.tyre_type]
+        self.roll_resistance = tyre_types[self.tyre_type][0]
+        self.tyre_traction = tyre_types[self.tyre_type][1]
         # ----------------------------------------------
         # NOS
         self.nos_type = nos_type
@@ -160,7 +169,7 @@ class Car:
         return (0.9 * self.drag_coefficient * 2 * 2.5 * ((self.speed_mps**2)))
 
     def traction(self):
-        return 0.7 * ((self.weight_kg * 9.81)/4) * 2
+        return 0.7 * ((self.weight_kg * 9.81)/4) * self.drive
 
     def accelerate(self, seconds):
         if self.shifting != False:
@@ -237,5 +246,6 @@ class Car:
         total_cost += {'Stock': 500, 'Street': 900, 'Sport': 1400, 'Performance': 1800, 'Race': 2200}[
             self.body_kit_type]
         total_cost += {'H': 250, 'V': 350, 'Z': 450, 'W': 550, 'Y': 650}[self.tyre_type]
+        total_cost += {2:0, 4:350}[self.drive]
         total_cost += {0:0, 75: 750, 100: 1000, 125: 1250, 150: 1500}[self.nos_type]
         return total_cost
